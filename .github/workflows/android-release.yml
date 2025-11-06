@@ -1,10 +1,11 @@
-name: Build Android APK
+name: Build Android Release
 
 on:
   push:
-    branches: [ main, master ]
-    tags-ignore:
-      - '**'
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+'
   workflow_dispatch:
 
 permissions:
@@ -12,7 +13,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APK
+    name: Build Android Release APK
     runs-on: ubuntu-latest
     
     steps:
@@ -105,24 +106,34 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: galaxybudsclient-android-arm64
+          name: galaxybudsclient-android-${{ github.ref_name }}
           path: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
-          retention-days: 14
+          retention-days: 90
           if-no-files-found: error
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
-          tag_name: nightly-${{ github.run_number }}
-          name: Nightly Build ${{ github.run_number }}
+          name: Galaxy Buds Client v${{ github.ref_name }}
           body: |
-            Automated nightly Android APK build from commit ${{ github.sha }}
+            ## Android Release v${{ github.ref_name }}
             
-            **Branch:** ${{ github.ref_name }}
-            **Commit:** ${{ github.event.head_commit.message }}
+            Official Android APK build for Galaxy Buds Client version ${{ github.ref_name }}.
+            
+            ### Installation
+            Download the APK and install it on your Android device.
+            
+            ### Changes
+            This release corresponds to version ${{ github.ref_name }} from the upstream repository.
+            For detailed changelog, visit: https://github.com/timschneeb/GalaxyBudsClient/releases/tag/${{ github.ref_name }}
+            
+            ---
+            
+            **Note:** This is an automated build from the forked repository.
+            For the original project, visit: https://github.com/timschneeb/GalaxyBudsClient
           draft: false
-          prerelease: true
+          prerelease: false
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

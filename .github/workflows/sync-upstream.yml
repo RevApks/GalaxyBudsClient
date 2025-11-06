@@ -28,6 +28,7 @@ jobs:
         run: |
           git remote add upstream https://github.com/timschneeb/GalaxyBudsClient.git
           git fetch upstream
+          git fetch upstream --tags
       
       - name: Merge upstream changes
         run: |
@@ -37,9 +38,10 @@ jobs:
             exit 1
           }
       
-      - name: Push changes
+      - name: Push changes and tags
         run: |
           git push origin ${{ github.ref_name }}
+          git push origin --tags
       
       - name: Create issue on merge conflict
         if: failure()
