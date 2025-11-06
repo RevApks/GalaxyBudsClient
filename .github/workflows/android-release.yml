@@ -7,6 +7,11 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+.[0-9]+'
       - '[0-9]+.[0-9]+'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., 5.2.0, 6.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -103,34 +108,74 @@ jobs:
           echo "Searching for APK files..."
           find GalaxyBudsClient.Android/bin -name "*.apk" -type f
       
+      - name: Get version tag
+        id: version
+        run: |
+          if [ "${{ github.ref_type }}" == "tag" ]; then
+            echo "version=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "is_manual=false" >> $GITHUB_OUTPUT
+          else
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "is_manual=true" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: galaxybudsclient-android-${{ github.ref_name }}
+          name: galaxybudsclient-android-${{ steps.version.outputs.version }}
           path: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
           retention-days: 90
           if-no-files-found: error
       
-      - name: Create GitHub Release
+      - name: Create GitHub Release (Version Tag)
+        if: steps.version.outputs.is_manual == 'false'
         uses: softprops/action-gh-release@v1
         with:
           files: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
-          name: Galaxy Buds Client v${{ github.ref_name }}
+          name: Galaxy Buds Client v${{ steps.version.outputs.version }}
           body: |
-            ## Android Release v${{ github.ref_name }}
+            ## Android Release v${{ steps.version.outputs.version }}
             
-            Official Android APK build for Galaxy Buds Client version ${{ github.ref_name }}.
+            Official Android APK build for Galaxy Buds Client version ${{ steps.version.outputs.version }}.
             
             ### Installation
             Download the APK and install it on your Android device.
             
             ### Changes
-            This release corresponds to version ${{ github.ref_name }} from the upstream repository.
-            For detailed changelog, visit: https://github.com/timschneeb/GalaxyBudsClient/releases/tag/${{ github.ref_name }}
+            This release corresponds to version ${{ steps.version.outputs.version }} from the upstream repository.
+            For detailed changelog, visit: https://github.com/timschneeb/GalaxyBudsClient/releases/tag/${{ steps.version.outputs.version }}
             
             ---
             
             **Note:** This is an automated build from the forked repository.
+            For the original project, visit: https://github.com/timschneeb/GalaxyBudsClient
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create GitHub Release (Manual Trigger)
+        if: steps.version.outputs.is_manual == 'true'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Galaxy Buds Client v${{ steps.version.outputs.version }}
+          body: |
+            ## Android Release v${{ steps.version.outputs.version }}
+            
+            Manually created Android APK build for Galaxy Buds Client version ${{ steps.version.outputs.version }}.
+            
+            **Build from commit:** ${{ github.sha }}
+            **Branch:** ${{ github.ref_name }}
+            
+            ### Installation
+            Download the APK and install it on your Android device.
+            
+            ---
+            
+            **Note:** This is a manually triggered build from the forked repository.
             For the original project, visit: https://github.com/timschneeb/GalaxyBudsClient
           draft: false
           prerelease: false
