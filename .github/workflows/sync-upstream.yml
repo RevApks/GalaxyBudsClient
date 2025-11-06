@@ -1,0 +1,70 @@
+# Claude generated workflow lmao
+name: Sync from Upstream
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync with upstream repository
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/timschneeb/GalaxyBudsClient.git
+          git fetch upstream
+      
+      - name: Merge upstream changes
+        run: |
+          # Try to merge upstream/master into current branch
+          git merge upstream/master --no-edit || {
+            echo "Merge conflict detected. Creating issue..."
+            exit 1
+          }
+      
+      - name: Push changes
+        run: |
+          git push origin ${{ github.ref_name }}
+      
+      - name: Create issue on merge conflict
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🔄 Upstream sync failed - merge conflict',
+              body: `The automatic sync from the upstream repository failed due to merge conflicts.
+              
+              **Upstream repository:** https://github.com/timschneeb/GalaxyBudsClient
+              
+              Please manually resolve the conflicts:
+              
+              \`\`\`bash
+              git remote add upstream https://github.com/timschneeb/GalaxyBudsClient.git
+              git fetch upstream
+              git merge upstream/master
+              # Resolve conflicts
+              git commit
+              git push
+              \`\`\`
+              
+              **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`,
+              labels: ['sync', 'merge-conflict']
+            })
