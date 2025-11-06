@@ -1,4 +1,8 @@
 
+> **⚠️ NOTICE: This is a fork of the original project**
+> 
+> This repository is a fork focused on Android builds. For the original project, desktop builds (Windows/macOS/Linux), or to report issues, please visit the original repository: **[timschneeb/GalaxyBudsClient](https://github.com/timschneeb/GalaxyBudsClient)**
+
 <p align="center">
   English | <a href="/docs/README_chs.md">中文(简体)</a> | <a href="/docs/README_cht.md">中文(繁體)</a> | <a href="/docs/README_rus.md">Русский</a> | <a href="/docs/README_jpn.md">日本語</a> | <a href="/docs/README_ukr.md">Українська</a> | <a href="/docs/README_kor.md">한국어</a> | <a href="/docs/README_cze.md">Česky</a> | <a href="/docs/README_tr.md">Türkçe</a> | <a href="/docs/README_gr.md">Ελληνικά</a> | <a href="/docs/README_pt.md">Português</a> | <a href="/docs/README_vnm.md">Tiếng Việt</a> <br>
     <sub>Attention: readme files are maintained by translators and may become outdated from time to time. For the newest info rely on the English version.</sub>

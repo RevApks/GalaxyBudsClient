@@ -1,0 +1,123 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      
+      - name: Install Android SDK components
+        run: |
+          sdkmanager "platforms;android-34"
+          sdkmanager "build-tools;34.0.0"
+      
+      - name: Install MAUI workloads
+        run: |
+          dotnet workload install maui-android
+      
+      - name: Display versions
+        run: |
+          echo "Java version:"
+          java -version
+          echo "dotnet version:"
+          dotnet --version
+          echo "Android SDK:"
+          echo $ANDROID_HOME
+      
+      - name: Restore NuGet packages
+        run: dotnet restore GalaxyBudsClient.Android/GalaxyBudsClient.Android.csproj
+      
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/keystore.jks
+      
+      - name: Build APK (ARM64, optimized)
+        env:
+          PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          cd GalaxyBudsClient.Android
+          dotnet publish \
+            -f net8.0-android \
+            -c Release \
+            -p:IsAndroid=true \
+            -p:IsOSX=false \
+            -p:IsWindows=false \
+            -p:IsLinux=false \
+            -p:RuntimeIdentifier=android-arm64 \
+            -p:AndroidKeyStore=true \
+            -p:AndroidSigningKeyStore=${{ github.workspace }}/keystore.jks \
+            -p:AndroidPackageFormats=apk \
+            -p:AndroidSigningKeyAlias=galaxybudsclient \
+            -p:AndroidSdkDirectory=$ANDROID_HOME \
+            -p:AndroidSigningKeyPass="env:PASS" \
+            -p:AndroidSigningStorePass="env:PASS" \
+            -p:DebugType=None \
+            -p:DebugSymbols=false \
+            -p:RunAOTCompilation=false \
+            -p:PublishTrimmed=false \
+            -p:AndroidLinkMode=None \
+            -p:AndroidEnableAssemblyCompression=true \
+            -p:EmbedAssembliesIntoApk=true \
+            -p:NoDemo=true \
+            -v m
+      
+      - name: List build outputs (debug)
+        if: always()
+        run: |
+          echo "Searching for APK files..."
+          find GalaxyBudsClient.Android/bin -name "*.apk" -type f
+      
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: galaxybudsclient-android-arm64
+          path: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
+          retention-days: 14
+          if-no-files-found: error
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
+          tag_name: build-${{ github.run_number }}
+          name: Android Build ${{ github.run_number }}
+          body: |
+            Automated Android APK build from commit ${{ github.sha }}
+            
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.event.head_commit.message }}
+          draft: false
+          prerelease: true
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
