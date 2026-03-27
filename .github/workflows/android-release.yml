@@ -31,10 +31,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '8.0.x'
+          global-json-file: global.json
       
       - name: Cache NuGet packages
         uses: actions/cache@v4
