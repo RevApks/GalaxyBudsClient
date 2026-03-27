@@ -31,10 +31,10 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+      - name: Setup .NET (global.json)
+        uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '8.0.x'
+          global-json-file: global.json
       
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -78,7 +78,6 @@ jobs:
         run: |
           cd GalaxyBudsClient.Android
           dotnet publish \
-            -f net8.0-android \
             -c Release \
             -p:IsAndroid=true \
             -p:IsOSX=false \
@@ -118,12 +117,12 @@ jobs:
             echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
             echo "is_manual=true" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: galaxybudsclient-android-${{ steps.version.outputs.version }}
-          path: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
+          path: GalaxyBudsClient.Android/bin/Release/**/android-arm64/publish/*-Signed.apk
           retention-days: 90
           if-no-files-found: error
       
@@ -131,7 +130,7 @@ jobs:
         if: steps.version.outputs.is_manual == 'false'
         uses: softprops/action-gh-release@v1
         with:
-          files: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
+          files: GalaxyBudsClient.Android/bin/Release/**/android-arm64/publish/*-Signed.apk
           name: Galaxy Buds Client v${{ steps.version.outputs.version }}
           body: |
             ## Android Release v${{ steps.version.outputs.version }}
@@ -159,7 +158,7 @@ jobs:
         if: steps.version.outputs.is_manual == 'true'
         uses: softprops/action-gh-release@v1
         with:
-          files: GalaxyBudsClient.Android/bin/Release/net8.0-android/android-arm64/*-Signed.apk
+          files: GalaxyBudsClient.Android/bin/Release/**/android-arm64/publish/*-Signed.apk
           tag_name: ${{ steps.version.outputs.version }}
           name: Galaxy Buds Client v${{ steps.version.outputs.version }}
           body: |
